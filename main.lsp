@@ -1,48 +1,24 @@
-;; (setq simplifications ('(+ x 0) 'x))
-
-;; (defun cas(expr rules)
-;;	(reduce #'apply-rule (append (list expr) rules))
-;;	)
 
 
-(defun match(pattern expr)
-	(if (consp pattern)
-			(if (and (consp expr) (eq (length pattern) (length expr)))
-					(gather-matches (mapcar #'match pattern expr))
-					NIL)
-			(if (is-matcher pattern)
-					(list (list pattern expr))
-					(eq pattern expr))))
+(load "substitute.lsp")
+(load "evaluate.lsp")
 
+(defvar *simplifications*
+  (list (list '(* x 1) 'x)
+		(list '(* 1 x) 'x)
+		(list '(* x 0) 0)
+		(list '(* 0 x) 0)
+		(list '(+ x 0) 'x)
+		(list '(+ 0 x) 'x)
+	   ))
 
-(defun gather-matches(matches)
-	(if (some #'null matches)
-			NIL
-			(or (reduce #'append (remove T matches)) T)))
-				
-
-(defun is-matcher(symb)
-	(and (eq (type-of symb) 'symbol)
-			 (eq (length (string symb)) 1)
-			 (alpha-char-p (char (string symb) 0))))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-;; (defmacro pipe(lis &rest operations)
-;; 	(reduce (lambda (result op)
-;; 						`(,@op ,result))
-;; 					(cons lis operations)))
-
-;; (defmacro curry(fun &rest params)
-;; 	(lambda (&rest rest) (apply 'fun (append params rest))))
+(defun cass(expr rules)
+  (if (consp expr)
+	  (mapcar (lambda (e)
+				(let ((result (cass e rules)))
+				  (reduce (lambda (prev r)
+							(cas-subst (first r) (second r) prev))
+						  rules
+						  :initial-value result)))
+			  expr)
+	  expr))
